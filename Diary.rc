@@ -1,0 +1,152 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "winres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// Русский (Россия) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_RUS)
+LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
+#pragma code_page(1251)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""winres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_DIARY DIALOGEX 0, 0, 496, 177
+STYLE DS_ABSALIGN | DS_SYSMODAL | DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Ежедневник"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_CALENDAR,"SysMonthCal32",MCS_NOTODAY | WS_TABSTOP,15,21,133,139
+    PUSHBUTTON      "Удалить",IDC_BTN_DEL,278,156,50,14
+    PUSHBUTTON      "Добавить",IDC_BTN_ADD,221,156,50,14
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SORTASCENDING | LVS_NOLABELWRAP | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,176,19,301,116
+    GROUPBOX        "Список планов на день",IDC_STATIC,165,7,324,137
+    PUSHBUTTON      "Удалить всё",IDC_BTN_DEL_ALL,334,156,50,14
+    GROUPBOX        "Календарь",IDC_STATIC,7,7,151,163
+    PUSHBUTTON      "Выполнено",IDC_BTN_DONE,390,156,50,14
+END
+
+IDD_DLG_EDIT DIALOGEX 0, 0, 229, 161
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Редактирование"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Время",IDC_STATIC,7,7,215,35
+    CONTROL         "",IDC_TIME,"SysDateTimePick32",DTS_RIGHTALIGN | DTS_UPDOWN | WS_TABSTOP | 0x8,17,18,192,15
+    GROUPBOX        "Событие",IDC_STATIC,7,46,215,64
+    EDITTEXT        IDC_TEXT,17,58,193,44,ES_MULTILINE | WS_VSCROLL
+    CONTROL         "Выполнено",IDC_STATUS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,82,118,53,10
+    PUSHBUTTON      "Применить",IDC_BTN_ACPT,55,136,50,14
+    PUSHBUTTON      "Отмена",IDC_BTN_CNCL,115,136,50,14
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_DIARY, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 489
+        VERTGUIDE, 270
+        VERTGUIDE, 383
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 170
+    END
+
+    IDD_DLG_EDIT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 222
+        VERTGUIDE, 113
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 154
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_DIARY AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_DLG_EDIT AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_ICON                ICON                    "icon.ico"
+
+#endif    // Русский (Россия) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
