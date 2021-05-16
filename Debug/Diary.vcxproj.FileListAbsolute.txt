@@ -1,2 +1,0 @@
-D:\Work\Program C++\Diary\Debug\Diary.exe
-D:\Work\Program C++\Diary\Debug\Diary.pdb

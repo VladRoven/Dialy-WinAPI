@@ -1,26 +1,47 @@
 #include <windows.h>
 #include <commctrl.h>    
-#pragma comment(lib,"Comctl32.lib")
 #include "resource.h"
 #include <string>
+#include <nlohmann/json.hpp>
+#include <fstream>
+
+//#pragma execution_character_set("utf-8")
+#pragma comment(lib,"Comctl32.lib")
 
 using namespace std;
+using namespace nlohmann;
 
 HINSTANCE hInst;
 HWND hList;
 HWND hDlgMain;
 SYSTEMTIME stMain;
-char* time;
+char* time_event;
 char* text;
 char* status;
 int iSelect;
+int gCount;
+json jsonObj;
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 BOOL CALLBACK DlgDiary(HWND, UINT, WPARAM, LPARAM);
 BOOL CALLBACK DlgEdit(HWND, UINT, WPARAM, LPARAM);
 int CreateColumn(HWND, int, LPSTR, int, int);
-int AddItems(HWND, LPWSTR, LPSTR, LPSTR);
+int AddItems(HWND, LPWSTR, LPSTR, LPSTR, LPSTR);
 char* GetDate(SYSTEMTIME st);
+void openFile();
+string UTF8ToANSI(string);
+void checkDate(string);
+
+struct Record
+{
+    int id;
+    string date;
+    string time;
+    string text;
+    string status;
+};
+
+Record* records;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -66,13 +87,27 @@ BOOL CALLBACK DlgDiary(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         }
 
         GetClientRect(hList, &rect);
+        CreateColumn(hList, 0, (LPSTR)"id", 0, LVCFMT_LEFT);
         CreateColumn(hList, 1, (LPSTR)"Время", 80, LVCFMT_LEFT);
         CreateColumn(hList, 2, (LPSTR)"Событие", rect.right - 180, LVCFMT_LEFT);
         CreateColumn(hList, 3, (LPSTR)"Статус", 100, LVCFMT_LEFT);
 
-        AddItems(hList, (LPWSTR)"11:47", (LPSTR)"Встреча с деловым партнёром", (LPSTR)"Не выполнено");
-        AddItems(hList, (LPWSTR)"09:30", (LPSTR)"Утренняя пробежка", (LPSTR)"Выполнено");
-        AddItems(hList, (LPWSTR)"16:00", (LPSTR)"Выгулять собаку", (LPSTR)"Не выполнено");
+        openFile();
+        gCount = jsonObj["count"];
+        records = new Record[gCount];
+
+        for (int i = 0; i < gCount; i++)
+        {
+            records[i].id = jsonObj["data"][i]["id"];
+            records[i].date = jsonObj["data"][i]["date"];
+            records[i].time = jsonObj["data"][i]["time"];
+            records[i].text = UTF8ToANSI(jsonObj["data"][i]["text"]);
+            records[i].status = UTF8ToANSI(jsonObj["data"][i]["status"]);
+        }
+
+        MonthCal_GetCurSel(GetDlgItem(hWnd, IDC_CALENDAR), &stMain);
+        checkDate(GetDate(stMain));
+
         break;
 
     case WM_COMMAND:
@@ -114,7 +149,7 @@ BOOL CALLBACK DlgDiary(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     checkPressBtn = MessageBox(hWnd, "   Вы действительно выполнили цель?", "Подтверждение выполнения", MB_ICONASTERISK | MB_YESNO);
 
                     if (checkPressBtn == IDYES)
-                        ListView_SetItemText(hList, iSelect, 2, (LPSTR)"Выполнено");
+                        ListView_SetItemText(hList, iSelect, 3, (LPSTR)"Выполнено");
                 }
                 else
                     MessageBox(hWnd, "   Цель уже была выполнена!", "Ошибка", MB_ICONERROR | MB_OK);
@@ -130,8 +165,7 @@ BOOL CALLBACK DlgDiary(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         {
         case MCN_SELECT:
             MonthCal_GetCurSel(GetDlgItem(hWnd, IDC_CALENDAR), &stMain);
-            OutputDebugString(GetDate(stMain));
-            OutputDebugString("\n");
+            checkDate(GetDate(stMain));
             break;
 
         case NM_DBLCLK:
@@ -140,13 +174,13 @@ BOOL CALLBACK DlgDiary(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
             if (iSelect >= 0)
             {
-                time = new char[256];
+                time_event = new char[256];
                 text = new char[256];
                 status = new char[256];
 
-                ListView_GetItemText(hList, iSelect, 0, time, 256);
-                ListView_GetItemText(hList, iSelect, 1, text, 256);
-                ListView_GetItemText(hList, iSelect, 2, status, 256);
+                ListView_GetItemText(hList, iSelect, 1, time_event, 256);
+                ListView_GetItemText(hList, iSelect, 2, text, 256);
+                ListView_GetItemText(hList, iSelect, 3, status, 256);
 
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_DLG_EDIT), hWnd, DlgEdit);
             }
@@ -180,7 +214,17 @@ char* GetDate(SYSTEMTIME st)
     return date;
 }
 
-int AddItems(HWND hwndList, LPWSTR Text1, LPSTR Text2, LPSTR Text3)
+void openFile()
+{
+    ifstream file;
+    file.open("data.json");
+
+    file >> jsonObj;
+
+    file.close();
+}
+
+int AddItems(HWND hwndList, LPWSTR Text1, LPSTR Text2, LPSTR Text3, LPSTR Text4)
 {
     LVITEMW lvi = { 0 };
     int Ret;
@@ -191,6 +235,7 @@ int AddItems(HWND hwndList, LPWSTR Text1, LPSTR Text2, LPSTR Text3)
     {
         ListView_SetItemText(hwndList, Ret, 1, Text2);
         ListView_SetItemText(hwndList, Ret, 2, Text3);
+        ListView_SetItemText(hwndList, Ret, 3, Text4);
     }
 
     SetFocus(hwndList);
@@ -206,10 +251,10 @@ BOOL CALLBACK DlgEdit(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     switch(msg)
     {
     case WM_INITDIALOG:
-        hour = time[0];
-        min = time[3];
-        hour += time[1];
-        min += time[4];
+        hour = time_event[0];
+        min = time_event[3];
+        hour += time_event[1];
+        min += time_event[4];
         stMain.wHour = stoi(hour);
         stMain.wMinute = stoi(min);
         stMain.wSecond = 0;
@@ -237,7 +282,7 @@ BOOL CALLBACK DlgEdit(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 min = '0' + min;
 
             hour += ":" + min;
-            time = &hour[0];
+            time_event = &hour[0];
 
             GetDlgItemText(hWnd, IDC_TEXT, text, 256);
 
@@ -248,9 +293,9 @@ BOOL CALLBACK DlgEdit(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             else
                 status = (char*)"Не выполнено";
 
-            ListView_SetItemText(hList, iSelect, 0, time);
-            ListView_SetItemText(hList, iSelect, 1, text);
-            ListView_SetItemText(hList, iSelect, 2, status);
+            ListView_SetItemText(hList, iSelect, 1, time_event);
+            ListView_SetItemText(hList, iSelect, 2, text);
+            ListView_SetItemText(hList, iSelect, 3, status);
 
             SendMessage(hList, LVM_SORTITEMS, NULL, NULL);
 
@@ -268,4 +313,38 @@ BOOL CALLBACK DlgEdit(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         return TRUE;
     }
     return FALSE;
+}
+
+string UTF8ToANSI(string s)
+{
+    BSTR    bstrWide;
+    char* pszAnsi;
+    int     nLength;
+    const char* pszCode = s.c_str();
+
+    nLength = MultiByteToWideChar(CP_UTF8, 0, pszCode, strlen(pszCode) + 1, NULL, NULL);
+    bstrWide = SysAllocStringLen(NULL, nLength);
+
+    MultiByteToWideChar(CP_UTF8, 0, pszCode, strlen(pszCode) + 1, bstrWide, nLength);
+
+    nLength = WideCharToMultiByte(CP_ACP, 0, bstrWide, -1, NULL, 0, NULL, NULL);
+    pszAnsi = new char[nLength];
+
+    WideCharToMultiByte(CP_ACP, 0, bstrWide, -1, pszAnsi, nLength, NULL, NULL);
+    SysFreeString(bstrWide);
+
+    string r(pszAnsi);
+    delete[] pszAnsi;
+    return r;
+}
+
+void checkDate(string date)
+{
+    SendMessage(hList, LVM_DELETEALLITEMS, 0, 0);
+
+    for (int i = 0; i < gCount; i++)
+    {
+        if (records[i].date == date)
+            AddItems(hList, (LPWSTR)to_string(records[i].id).c_str(), (LPSTR)records[i].time.c_str(), (LPSTR)records[i].text.c_str(), (LPSTR)records[i].status.c_str());
+    }
 }
