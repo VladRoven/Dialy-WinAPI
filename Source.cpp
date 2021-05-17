@@ -4,8 +4,8 @@
 #include <string>
 #include <nlohmann/json.hpp>
 #include <fstream>
+#include <vector>
 
-//#pragma execution_character_set("utf-8")
 #pragma comment(lib,"Comctl32.lib")
 
 using namespace std;
@@ -25,6 +25,7 @@ json jsonObj;
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 BOOL CALLBACK DlgDiary(HWND, UINT, WPARAM, LPARAM);
 BOOL CALLBACK DlgEdit(HWND, UINT, WPARAM, LPARAM);
+BOOL CALLBACK DlgAdd(HWND, UINT, WPARAM, LPARAM);
 int CreateColumn(HWND, int, LPSTR, int, int);
 int AddItems(HWND, LPWSTR, LPSTR, LPSTR, LPSTR);
 char* GetDate(SYSTEMTIME st);
@@ -41,7 +42,7 @@ struct Record
     string status;
 };
 
-Record* records;
+vector <Record> records;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -66,6 +67,7 @@ BOOL CALLBACK DlgDiary(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     HICON hIcon;
     char* buffer = new char[256];
     int checkPressBtn;
+    string id;
 
     switch (msg)
     {
@@ -94,10 +96,10 @@ BOOL CALLBACK DlgDiary(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
         openFile();
         gCount = jsonObj["count"];
-        records = new Record[gCount];
 
         for (int i = 0; i < gCount; i++)
         {
+            records.push_back(Record());
             records[i].id = jsonObj["data"][i]["id"];
             records[i].date = jsonObj["data"][i]["date"];
             records[i].time = jsonObj["data"][i]["time"];
@@ -122,11 +124,17 @@ BOOL CALLBACK DlgDiary(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 checkPressBtn = MessageBox(hWnd, "   Вы действительно хотите удалить запись?", "Подтверждение удаления", MB_ICONASTERISK | MB_YESNO);
 
                 if (checkPressBtn == IDYES)
+                {
+                    ListView_GetItemText(hList, iSelect, 0, (LPSTR)id.c_str(), 256);
+                    records.erase(records.begin() + stoi(id));
+                    gCount--;
                     SendMessage(hList, LVM_DELETEITEM, iSelect, 0);
+                }
             }
             else
                 MessageBox(hWnd, "   Выберите запись для удаления!", "Ошибка", MB_ICONERROR);
 
+            ::SetFocus(hList);
             break;
 
         case IDC_BTN_DEL_ALL:
@@ -134,6 +142,8 @@ BOOL CALLBACK DlgDiary(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
             if (checkPressBtn == IDYES)
                 SendMessage(hList, LVM_DELETEALLITEMS, 0, 0);
+
+            ::SetFocus(hList);
             break;
 
         case IDC_BTN_DONE:
@@ -142,20 +152,30 @@ BOOL CALLBACK DlgDiary(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
             if (iSelect >= 0)
             {
-                ListView_GetItemText(hList, iSelect, 2, buffer, 256);
+                ListView_GetItemText(hList, iSelect, 3, buffer, 256);
                 
                 if (strcmp(buffer, "Выполнено"))
                 {
                     checkPressBtn = MessageBox(hWnd, "   Вы действительно выполнили цель?", "Подтверждение выполнения", MB_ICONASTERISK | MB_YESNO);
 
                     if (checkPressBtn == IDYES)
+                    {
+                        ListView_GetItemText(hList, iSelect, 0, (LPSTR)id.c_str(), 256);
+                        records[stoi(id)].status = "Выполнено";
                         ListView_SetItemText(hList, iSelect, 3, (LPSTR)"Выполнено");
+                    }
                 }
                 else
                     MessageBox(hWnd, "   Цель уже была выполнена!", "Ошибка", MB_ICONERROR | MB_OK);
             }
             else
                 MessageBox(hWnd, "   Выберите запись для подтверждения!", "Ошибка", MB_ICONERROR);
+
+            ::SetFocus(hList);
+            break;
+
+        case IDC_BTN_ADD:
+            DialogBox(hInst, MAKEINTRESOURCE(IDD_DLG_ADD), hWnd, DlgAdd);
             break;
         }
         break;
@@ -246,6 +266,7 @@ BOOL CALLBACK DlgEdit(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     string hour;
     string min;
+    string id;
     int check;
 
     switch(msg)
@@ -293,6 +314,11 @@ BOOL CALLBACK DlgEdit(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             else
                 status = (char*)"Не выполнено";
 
+            ListView_GetItemText(hList, iSelect, 0, (LPSTR)id.c_str(), 256);
+            records[stoi(id)].time = time_event;
+            records[stoi(id)].text = text;
+            records[stoi(id)].status = status;
+
             ListView_SetItemText(hList, iSelect, 1, time_event);
             ListView_SetItemText(hList, iSelect, 2, text);
             ListView_SetItemText(hList, iSelect, 3, status);
@@ -300,10 +326,73 @@ BOOL CALLBACK DlgEdit(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             SendMessage(hList, LVM_SORTITEMS, NULL, NULL);
 
             EndDialog(hWnd, NULL);
+            ::SetFocus(hList);
             return TRUE;
 
         case IDC_BTN_CNCL:
             EndDialog(hWnd, NULL);
+            ::SetFocus(hList);
+            return TRUE;
+        }
+        break;
+
+    case WM_CLOSE:
+        EndDialog(hWnd, NULL);
+        return TRUE;
+    }
+    return FALSE;
+}
+
+BOOL CALLBACK DlgAdd(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    string hour;
+    string min;
+    string txt;
+
+    switch (msg)
+    {
+    case WM_INITDIALOG:
+        DateTime_SetSystemtime(GetDlgItem(hWnd, IDC_TIME_ADD), GDT_VALID, &stMain);
+        break;
+
+    case WM_COMMAND:
+        switch (LOWORD(wParam))
+        {
+        case IDC_BTN_ACPT_ADD:
+            DateTime_GetSystemtime(GetDlgItem(hWnd, IDC_TIME_ADD), &stMain);
+            GetDlgItemText(hWnd, IDC_TEXT_ADD, (LPSTR)txt.c_str(), 256);
+
+            hour = to_string(stMain.wHour);
+            min = to_string(stMain.wMinute);
+
+            if (hour.size() == 1)
+                hour = '0' + hour;
+
+            if (min.size() == 1)
+                min = '0' + min;
+
+            hour += ":" + min;
+            time_event = &hour[0];
+
+            records.push_back(Record());
+            records[gCount].id = gCount;
+            records[gCount].date = GetDate(stMain);
+            records[gCount].time = time_event;
+            records[gCount].text = txt.c_str();
+            records[gCount].status = "Не выполнено";
+
+            AddItems(hList, (LPWSTR)to_string(records[gCount].id).c_str(), (LPSTR)records[gCount].time.c_str(), (LPSTR)records[gCount].text.c_str(), (LPSTR)records[gCount].status.c_str());
+
+            SendMessage(hList, LVM_SORTITEMS, NULL, NULL);
+
+            gCount++;
+            EndDialog(hWnd, NULL);
+            ::SetFocus(hList);
+            return TRUE;
+
+        case IDC_BTN_CNCL_ADD:
+            EndDialog(hWnd, NULL);
+            ::SetFocus(hList);
             return TRUE;
         }
         break;

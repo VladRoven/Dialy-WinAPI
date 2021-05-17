@@ -1,4 +1,4 @@
-D:\Work\Program C++\Diary\Debug\Diary.exe
-D:\Work\Program C++\Diary\Debug\Diary.pdb
+D:\Work\Program C++\Diary\Debug\Dialy.exe
+D:\Work\Program C++\Diary\Debug\Dialy.pdb
 D:\Work\Program C++\Dialy\Debug\Dialy.exe
 D:\Work\Program C++\Dialy\Debug\Dialy.pdb
