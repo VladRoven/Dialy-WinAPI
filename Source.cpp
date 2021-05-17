@@ -20,6 +20,7 @@ char* text;
 char* status;
 int iSelect;
 int gCount;
+int lstId = 0;
 json jsonObj;
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -31,7 +32,9 @@ int AddItems(HWND, LPWSTR, LPSTR, LPSTR, LPSTR);
 char* GetDate(SYSTEMTIME st);
 void openFile();
 string UTF8ToANSI(string);
+string ANSItoUTF8(string);
 void checkDate(string);
+void saveToFile();
 
 struct Record
 {
@@ -95,16 +98,22 @@ BOOL CALLBACK DlgDiary(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         CreateColumn(hList, 3, (LPSTR)"Статус", 100, LVCFMT_LEFT);
 
         openFile();
-        gCount = jsonObj["count"];
 
-        for (int i = 0; i < gCount; i++)
+        if (!jsonObj.is_null())
         {
-            records.push_back(Record());
-            records[i].id = jsonObj["data"][i]["id"];
-            records[i].date = jsonObj["data"][i]["date"];
-            records[i].time = jsonObj["data"][i]["time"];
-            records[i].text = UTF8ToANSI(jsonObj["data"][i]["text"]);
-            records[i].status = UTF8ToANSI(jsonObj["data"][i]["status"]);
+            gCount = jsonObj["count"];
+
+            for (int i = 0; i < gCount; i++)
+            {
+                records.push_back(Record());
+                records[i].id = jsonObj["data"][i]["id"];
+                records[i].date = jsonObj["data"][i]["date"];
+                records[i].time = jsonObj["data"][i]["time"];
+                records[i].text = UTF8ToANSI(jsonObj["data"][i]["text"]);
+                records[i].status = UTF8ToANSI(jsonObj["data"][i]["status"]);
+
+                lstId = records[i].id + 1;
+            }
         }
 
         MonthCal_GetCurSel(GetDlgItem(hWnd, IDC_CALENDAR), &stMain);
@@ -126,9 +135,18 @@ BOOL CALLBACK DlgDiary(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 if (checkPressBtn == IDYES)
                 {
                     ListView_GetItemText(hList, iSelect, 0, (LPSTR)id.c_str(), 256);
-                    records.erase(records.begin() + stoi(id));
-                    gCount--;
+
+                    for (int i = 0; i < gCount; i++)
+                    {
+                        if (records[i].id == stoi(id))
+                        {
+                            records.erase(records.begin() + i);
+                            gCount--;
+                        }
+                    }
+                 
                     SendMessage(hList, LVM_DELETEITEM, iSelect, 0);
+                    saveToFile();
                 }
             }
             else
@@ -141,7 +159,20 @@ BOOL CALLBACK DlgDiary(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             checkPressBtn = MessageBox(hWnd, "   Вы действительно хотите удалить все записи?", "Подтверждение удаления", MB_ICONASTERISK | MB_YESNO);
 
             if (checkPressBtn == IDYES)
+            {
+                MonthCal_GetCurSel(GetDlgItem(hWnd, IDC_CALENDAR), &stMain);
+                for (int i = gCount - 1; i >= 0; i--)
+                {
+                    if (records[i].date == GetDate(stMain))
+                    {
+                        records.erase(records.begin() + i);
+                        gCount--;
+                    }
+                }
                 SendMessage(hList, LVM_DELETEALLITEMS, 0, 0);
+
+                saveToFile();
+            }
 
             ::SetFocus(hList);
             break;
@@ -163,6 +194,7 @@ BOOL CALLBACK DlgDiary(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
                         ListView_GetItemText(hList, iSelect, 0, (LPSTR)id.c_str(), 256);
                         records[stoi(id)].status = "Выполнено";
                         ListView_SetItemText(hList, iSelect, 3, (LPSTR)"Выполнено");
+                        saveToFile();
                     }
                 }
                 else
@@ -239,8 +271,10 @@ void openFile()
     ifstream file;
     file.open("data.json");
 
-    file >> jsonObj;
-
+    if (file.is_open())
+    {
+        file >> jsonObj;
+    }
     file.close();
 }
 
@@ -323,10 +357,12 @@ BOOL CALLBACK DlgEdit(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             ListView_SetItemText(hList, iSelect, 2, text);
             ListView_SetItemText(hList, iSelect, 3, status);
 
-            SendMessage(hList, LVM_SORTITEMS, NULL, NULL);
+            /*SendMessage(hList, LVM_SORTITEMS, NULL, NULL);*/
 
             EndDialog(hWnd, NULL);
             ::SetFocus(hList);
+
+            saveToFile();
             return TRUE;
 
         case IDC_BTN_CNCL:
@@ -348,17 +384,18 @@ BOOL CALLBACK DlgAdd(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     string hour;
     string min;
     string txt;
+    string date;
 
     switch (msg)
     {
     case WM_INITDIALOG:
-        DateTime_SetSystemtime(GetDlgItem(hWnd, IDC_TIME_ADD), GDT_VALID, &stMain);
         break;
 
     case WM_COMMAND:
         switch (LOWORD(wParam))
         {
         case IDC_BTN_ACPT_ADD:
+            date = GetDate(stMain);
             DateTime_GetSystemtime(GetDlgItem(hWnd, IDC_TIME_ADD), &stMain);
             GetDlgItemText(hWnd, IDC_TEXT_ADD, (LPSTR)txt.c_str(), 256);
 
@@ -375,19 +412,21 @@ BOOL CALLBACK DlgAdd(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             time_event = &hour[0];
 
             records.push_back(Record());
-            records[gCount].id = gCount;
-            records[gCount].date = GetDate(stMain);
+            records[gCount].id = lstId++;
+            records[gCount].date = date;
             records[gCount].time = time_event;
             records[gCount].text = txt.c_str();
             records[gCount].status = "Не выполнено";
 
             AddItems(hList, (LPWSTR)to_string(records[gCount].id).c_str(), (LPSTR)records[gCount].time.c_str(), (LPSTR)records[gCount].text.c_str(), (LPSTR)records[gCount].status.c_str());
 
-            SendMessage(hList, LVM_SORTITEMS, NULL, NULL);
+            //SendMessage(hList, LVM_SORTITEMS, NULL, NULL);
 
             gCount++;
             EndDialog(hWnd, NULL);
             ::SetFocus(hList);
+
+            saveToFile();
             return TRUE;
 
         case IDC_BTN_CNCL_ADD:
@@ -427,6 +466,29 @@ string UTF8ToANSI(string s)
     return r;
 }
 
+string ANSItoUTF8(string s)
+{
+    BSTR    bstrWide;
+    char* pszAnsi;
+    int     nLength;
+    const char* pszCode = s.c_str();
+
+    nLength = MultiByteToWideChar(CP_ACP, 0, pszCode, strlen(pszCode) + 1, NULL, NULL);
+    bstrWide = SysAllocStringLen(NULL, nLength);
+
+    MultiByteToWideChar(CP_ACP, 0, pszCode, strlen(pszCode) + 1, bstrWide, nLength);
+
+    nLength = WideCharToMultiByte(CP_UTF8, 0, bstrWide, -1, NULL, 0, NULL, NULL);
+    pszAnsi = new char[nLength];
+
+    WideCharToMultiByte(CP_UTF8, 0, bstrWide, -1, pszAnsi, nLength, NULL, NULL);
+    SysFreeString(bstrWide);
+
+    string r(pszAnsi);
+    delete[] pszAnsi;
+    return r;
+}
+
 void checkDate(string date)
 {
     SendMessage(hList, LVM_DELETEALLITEMS, 0, 0);
@@ -436,4 +498,25 @@ void checkDate(string date)
         if (records[i].date == date)
             AddItems(hList, (LPWSTR)to_string(records[i].id).c_str(), (LPSTR)records[i].time.c_str(), (LPSTR)records[i].text.c_str(), (LPSTR)records[i].status.c_str());
     }
+}
+
+void saveToFile()
+{
+    ofstream file;
+
+    jsonObj.clear();
+    jsonObj["count"] = gCount;
+
+    for (int i = 0; i < gCount; i++)
+    {
+        jsonObj["data"][i] = { {"id", records[i].id}, {"date", records[i].date}, {"time", records[i].time}, {"text", ANSItoUTF8(records[i].text)}, {"status", ANSItoUTF8(records[i].status)} };
+    }
+
+    file.open("data.json");
+
+    if (file.is_open())
+    {
+        file << jsonObj;
+    }
+    file.close();
 }
