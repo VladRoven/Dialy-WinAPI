@@ -302,6 +302,7 @@ BOOL CALLBACK DlgEdit(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     string min;
     string id;
     int check;
+    string txt_s;
 
     switch(msg)
     {
@@ -348,21 +349,28 @@ BOOL CALLBACK DlgEdit(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             else
                 status = (char*)"Не выполнено";
 
-            ListView_GetItemText(hList, iSelect, 0, (LPSTR)id.c_str(), 256);
-            records[stoi(id)].time = time_event;
-            records[stoi(id)].text = text;
-            records[stoi(id)].status = status;
+            txt_s = text;
+            if (txt_s != "")
+            {
+                ListView_GetItemText(hList, iSelect, 0, (LPSTR)id.c_str(), 256);
+                records[stoi(id)].time = time_event;
+                records[stoi(id)].text = text;
+                records[stoi(id)].status = status;
 
-            ListView_SetItemText(hList, iSelect, 1, time_event);
-            ListView_SetItemText(hList, iSelect, 2, text);
-            ListView_SetItemText(hList, iSelect, 3, status);
+                ListView_SetItemText(hList, iSelect, 1, time_event);
+                ListView_SetItemText(hList, iSelect, 2, text);
+                ListView_SetItemText(hList, iSelect, 3, status);
 
-            /*SendMessage(hList, LVM_SORTITEMS, NULL, NULL);*/
+                /*SendMessage(hList, LVM_SORTITEMS, NULL, NULL);*/
 
-            EndDialog(hWnd, NULL);
-            ::SetFocus(hList);
+                EndDialog(hWnd, NULL);
+                ::SetFocus(hList);
 
-            saveToFile();
+                saveToFile();
+            }
+            else
+                MessageBox(hWnd, "   Введите данные в поле \"Событие\"!", "Ошибка", MB_ICONERROR | MB_OK);
+
             return TRUE;
 
         case IDC_BTN_CNCL:
@@ -384,6 +392,7 @@ BOOL CALLBACK DlgAdd(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     string hour;
     string min;
     char *txt = new char[256];
+    string txt_s;
     string date;
 
     switch (msg)
@@ -411,22 +420,29 @@ BOOL CALLBACK DlgAdd(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             hour += ":" + min;
             time_event = &hour[0];
 
-            records.push_back(Record());
-            records[gCount].id = lstId++;
-            records[gCount].date = date;
-            records[gCount].time = time_event;
-            records[gCount].text = txt;
-            records[gCount].status = "Не выполнено";
+            txt_s = txt;
+            if (txt_s != "")
+            {
+                records.push_back(Record());
+                records[gCount].id = lstId++;
+                records[gCount].date = date;
+                records[gCount].time = time_event;
+                records[gCount].text = txt;
+                records[gCount].status = "Не выполнено";
 
-            AddItems(hList, (LPWSTR)to_string(records[gCount].id).c_str(), (LPSTR)records[gCount].time.c_str(), (LPSTR)records[gCount].text.c_str(), (LPSTR)records[gCount].status.c_str());
+                AddItems(hList, (LPWSTR)to_string(records[gCount].id).c_str(), (LPSTR)records[gCount].time.c_str(), (LPSTR)records[gCount].text.c_str(), (LPSTR)records[gCount].status.c_str());
 
-            //SendMessage(hList, LVM_SORTITEMS, NULL, NULL);
+                //SendMessage(hList, LVM_SORTITEMS, NULL, NULL);
 
-            gCount++;
-            EndDialog(hWnd, NULL);
-            ::SetFocus(hList);
+                gCount++;
+                EndDialog(hWnd, NULL);
+                ::SetFocus(hList);
 
-            saveToFile();
+                saveToFile();
+            }
+            else
+                MessageBox(hWnd, "   Введите данные в поле \"Событие\"!", "Ошибка", MB_ICONERROR | MB_OK);
+
             return TRUE;
 
         case IDC_BTN_CNCL_ADD:
