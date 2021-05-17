@@ -383,7 +383,7 @@ BOOL CALLBACK DlgAdd(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     string hour;
     string min;
-    string txt;
+    char *txt = new char[256];
     string date;
 
     switch (msg)
@@ -397,7 +397,7 @@ BOOL CALLBACK DlgAdd(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         case IDC_BTN_ACPT_ADD:
             date = GetDate(stMain);
             DateTime_GetSystemtime(GetDlgItem(hWnd, IDC_TIME_ADD), &stMain);
-            GetDlgItemText(hWnd, IDC_TEXT_ADD, (LPSTR)txt.c_str(), 256);
+            GetDlgItemText(hWnd, IDC_TEXT_ADD, txt, 256);
 
             hour = to_string(stMain.wHour);
             min = to_string(stMain.wMinute);
@@ -415,7 +415,7 @@ BOOL CALLBACK DlgAdd(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             records[gCount].id = lstId++;
             records[gCount].date = date;
             records[gCount].time = time_event;
-            records[gCount].text = txt.c_str();
+            records[gCount].text = txt;
             records[gCount].status = "Не выполнено";
 
             AddItems(hList, (LPWSTR)to_string(records[gCount].id).c_str(), (LPSTR)records[gCount].time.c_str(), (LPSTR)records[gCount].text.c_str(), (LPSTR)records[gCount].status.c_str());
