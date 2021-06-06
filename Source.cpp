@@ -23,7 +23,6 @@ int gCount;
 int lstId = 0;
 json jsonObj;
 
-LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 BOOL CALLBACK DlgDiary(HWND, UINT, WPARAM, LPARAM);
 BOOL CALLBACK DlgEdit(HWND, UINT, WPARAM, LPARAM);
 BOOL CALLBACK DlgAdd(HWND, UINT, WPARAM, LPARAM);
@@ -192,7 +191,14 @@ BOOL CALLBACK DlgDiary(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     if (checkPressBtn == IDYES)
                     {
                         ListView_GetItemText(hList, iSelect, 0, (LPSTR)id.c_str(), 256);
-                        records[stoi(id)].status = "Выполнено";
+                        for (int i = 0; i < gCount; i++)
+                        {
+                            if (records[i].id == stoi(id))
+                            {
+                                records[i].status = "Выполнено";
+                                break;
+                            }
+                        }
                         ListView_SetItemText(hList, iSelect, 3, (LPSTR)"Выполнено");
                         saveToFile();
                     }
@@ -353,9 +359,16 @@ BOOL CALLBACK DlgEdit(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             if (txt_s != "")
             {
                 ListView_GetItemText(hList, iSelect, 0, (LPSTR)id.c_str(), 256);
-                records[stoi(id)].time = time_event;
-                records[stoi(id)].text = text;
-                records[stoi(id)].status = status;
+                for (int i = 0; i < gCount; i++)
+                {
+                    if (records[i].id == stoi(id))
+                    {
+                        records[i].time = time_event;
+                        records[i].text = text;
+                        records[i].status = status;
+                        break;
+                    }
+                }
 
                 ListView_SetItemText(hList, iSelect, 1, time_event);
                 ListView_SetItemText(hList, iSelect, 2, text);
